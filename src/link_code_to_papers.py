@@ -87,13 +87,14 @@ def inject_code_data(tx, repo_name, file_data):
         tx.run(
             """
             MERGE (fn:Function {name: $func_name})
-            SET fn.description = $desc
+            SET fn.description = $desc, fn.arguments = $args
             WITH fn
             MATCH (f:File {name: $file_name, repository: $repo_name})
             MERGE (f)-[:DEFINES]->(fn)
             """,
             func_name=func["function_name"],
             desc=func["description"],
+            args=func["arguments"],    # native list, no .join()
             file_name=data["file_name"],
             repo_name=repo_name
         )
