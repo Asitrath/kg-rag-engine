@@ -64,7 +64,7 @@ def inject_code_data(tx, repo_name, file_data):
     tx.run(
         """
         MERGE (r:Repository {name: $repo_name})
-        MERGE (f:File {name: $file_name})
+        MERGE (f:File {name: $file_name, repository: $repo_name})
         MERGE (f)-[:BELONGS_TO]->(r)
         """,
         repo_name=repo_name, file_name=data["file_name"]
@@ -76,10 +76,10 @@ def inject_code_data(tx, repo_name, file_data):
             """
             MERGE (d:Dependency {name: $dep_name})
             WITH d
-            MATCH (f:File {name: $file_name})
+            MATCH (f:File {name: $file_name, repository: $repo_name})
             MERGE (f)-[:IMPORTS]->(d)
             """,
-            dep_name=dep, file_name=data["file_name"]
+            dep_name=dep, file_name=data["file_name"], repo_name=repo_name
         )
 
     # Link Functions
@@ -89,12 +89,13 @@ def inject_code_data(tx, repo_name, file_data):
             MERGE (fn:Function {name: $func_name})
             SET fn.description = $desc
             WITH fn
-            MATCH (f:File {name: $file_name})
+            MATCH (f:File {name: $file_name, repository: $repo_name})
             MERGE (f)-[:DEFINES]->(fn)
             """,
             func_name=func["function_name"],
             desc=func["description"],
-            file_name=data["file_name"]
+            file_name=data["file_name"],
+            repo_name=repo_name
         )
 
 # ==========================================

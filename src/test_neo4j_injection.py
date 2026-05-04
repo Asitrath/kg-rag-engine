@@ -29,8 +29,14 @@ repo_data = {
 # 3. The Cypher Injection Logic
 def inject_to_graph(tx, data):
     # A. Create the main File Node
+    # Add this inside inject_to_graph(), after the File MERGE
     tx.run(
-        "MERGE (f:File {name: $file_name})",
+        """
+        MERGE (r:Repository {name: $repo_name})
+        MERGE (f:File {name: $file_name, repository: $repo_name})
+        MERGE (f)-[:BELONGS_TO]->(r)
+        """,
+        repo_name="ToG-main",
         file_name=data["file_name"]
     )
 
