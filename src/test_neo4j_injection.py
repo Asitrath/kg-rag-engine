@@ -64,7 +64,7 @@ def inject_to_graph(tx, data):
             """,
             func_name=func["function_name"],
             desc=func["description"],
-            args=", ".join(func["arguments"]),  # Convert list to string for storage
+            args=func["arguments"],  # Store as native Neo4j list
             file_name=data["file_name"]
         )
 
