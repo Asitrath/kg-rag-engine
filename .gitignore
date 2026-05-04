@@ -1,0 +1,16 @@
+# Environments
+venv/
+env/
+.env
+
+# Python Caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore ALL downloaded data, pdfs, and code repositories
+data/
+
+# OS generated files
+.DS_Store
+Thumbs.db
