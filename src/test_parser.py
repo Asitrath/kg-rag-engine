@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from llama_index.core import Document
-from llama_index.llms.gemini import Gemini
+from llama_index.llms.google_genai import GoogleGenAI
 from pydantic import BaseModel, Field
 from typing import List
 
@@ -15,6 +15,10 @@ class PaperExtraction(BaseModel):
     authors: List[str] = Field(description="A list of the authors' names")
     methodologies: List[str] = Field(description="Core algorithms, architectures, or methods used (e.g., GNN, LLM, Temporal Reasoning)")
     key_findings: List[str] = Field(description="1-2 brief sentences summarizing the main discoveries")
+    datasets: List[str] = Field(description="Names of KG datasets used for evaluation e.g. FB15k-237, WD50K, WebQSP, NELL-995")
+    metrics: List[str] = Field(description="Evaluation metrics reported e.g. Hits@1, Hits@10, MRR, F1")
+    baselines: List[str] = Field(description="Names of baseline models compared against e.g. ToG, RoG, GNN-RAG")
+    kg_structure_assumption: str = Field(description="The KG structural form this paper assumes. Must be exactly one of: 'triple-only', 'hyper-relational', 'temporal-quadruple', 'mixed'")
 
 # 3. Load the Markdown File
 current_dir = os.getcwd()
@@ -30,7 +34,7 @@ text_to_process = raw_markdown[:5000]
 
 # 4. Initialize the Gemini API
 print("Connecting to Gemini API...")
-llm = Gemini(model="models/gemini-3-flash-preview")
+llm = GoogleGenAI(model="models/gemini-3-flash-preview")
 
 # 5. Execute the Extraction
 print("Extracting Graph Nodes... (This takes a few seconds)")

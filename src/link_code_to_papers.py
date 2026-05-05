@@ -99,6 +99,42 @@ def inject_code_data(tx, repo_name, file_data):
             repo_name=repo_name
         )
 
+    # Link Classes
+    for cls in data["classes_defined"]:
+        tx.run(
+            """
+            MERGE (c:Class {name: $cls_name})
+            WITH c
+            MATCH (f:File {name: $file_name, repository: $repo_name})
+            MERGE (f)-[:DEFINES_CLASS]->(c)
+            """,
+            cls_name=cls, file_name=data["file_name"], repo_name=repo_name
+        )
+
+    # Link Data Structures
+    for ds in data["data_structures"]:
+        tx.run(
+            """
+            MERGE (s:DataStructure {name: $ds_name})
+            WITH s
+            MATCH (f:File {name: $file_name, repository: $repo_name})
+            MERGE (f)-[:USES_STRUCTURE]->(s)
+            """,
+            ds_name=ds, file_name=data["file_name"], repo_name=repo_name
+        )
+
+    # Link Graph Libraries
+    for lib in data["graph_libraries"]:
+        tx.run(
+            """
+            MERGE (gl:GraphLibrary {name: $lib_name})
+            WITH gl
+            MATCH (f:File {name: $file_name, repository: $repo_name})
+            MERGE (f)-[:USES_GRAPH_LIB]->(gl)
+            """,
+            lib_name=lib, file_name=data["file_name"], repo_name=repo_name
+        )
+
 # ==========================================
 # 5. MAIN EXECUTION LOOP
 # ==========================================

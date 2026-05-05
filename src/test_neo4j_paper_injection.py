@@ -23,6 +23,10 @@ class PaperExtraction(BaseModel):
     authors: List[str] = Field(description="A list of the authors' names")
     methodologies: List[str] = Field(description="Core algorithms, architectures, or methods used")
     key_findings: List[str] = Field(description="1-2 brief sentences summarizing the main discoveries")
+    datasets: List[str] = Field(description="Names of KG datasets used for evaluation e.g. FB15k-237, WD50K, WebQSP, NELL-995")
+    metrics: List[str] = Field(description="Evaluation metrics reported e.g. Hits@1, Hits@10, MRR, F1")
+    baselines: List[str] = Field(description="Names of baseline models compared against e.g. ToG, RoG, GNN-RAG")
+    kg_structure_assumption: str = Field(description="The KG structural form this paper assumes. Must be exactly one of: 'triple-only', 'hyper-relational', 'temporal-quadruple', 'mixed'")
 
 # ==========================================
 # 3. NEO4J INJECTION LOGIC
