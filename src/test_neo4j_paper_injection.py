@@ -6,6 +6,7 @@ from llama_index.llms.google_genai import GoogleGenAI
 from pydantic import BaseModel, Field
 from typing import List
 from neo4j import GraphDatabase
+from llama_index.llms.openai_like import OpenAILike
 
 # ==========================================
 # 1. SETUP & CREDENTIALS
@@ -27,6 +28,7 @@ class PaperExtraction(BaseModel):
     metrics: List[str] = Field(description="Evaluation metrics reported e.g. Hits@1, Hits@10, MRR, F1")
     baselines: List[str] = Field(description="Names of baseline models compared against e.g. ToG, RoG, GNN-RAG")
     kg_structure_assumption: str = Field(description="The KG structural form this paper assumes. Must be exactly one of: 'triple-only', 'hyper-relational', 'temporal-quadruple', 'mixed'")
+    aliases: List[str] = Field(description="Short-form names, acronyms, or codebase names this paper is commonly referred to by e.g. 'ToG' for Think-on-Graph, 'RoG' for Reasoning on Graphs, 'StarE' for Message Passing for Hyper-Relational Knowledge Graphs")
 
 # ==========================================
 # 3. NEO4J INJECTION LOGIC
@@ -39,10 +41,11 @@ def inject_paper_to_graph(tx, paper_obj):
     tx.run(
         """
         MERGE (p:Paper {title: $title})
-        SET p.key_findings = $findings
+        SET p.key_findings = $findings, p.aliases = $aliases
         """,
         title=data["paper_title"],
-        findings=" | ".join(data["key_findings"])
+        findings=" | ".join(data["key_findings"]),
+        aliases=data["aliases"]
     )
 
     # B. Create Author Nodes and link them to the Paper
@@ -122,7 +125,13 @@ def inject_paper_to_graph(tx, paper_obj):
 def process_all_papers():
     # Initialize the LLM
     print("Connecting to Gemini API...")
-    llm = GoogleGenAI(model="gemini-3-flash-preview")
+    # llm = GoogleGenAI(model="gemini-3-flash-preview")
+    llm = OpenAILike(
+       model="deepseek-v4-flash",
+       api_key="sk-349e12aae5224474b52394d8668cf1be",
+       api_base="https://api.deepseek.com",
+       is_chat_model=True
+   )
     structured_llm = llm.as_structured_llm(output_cls=PaperExtraction)
 
     # Initialize Neo4j
@@ -183,7 +192,7 @@ def process_all_papers():
                 session.execute_write(inject_paper_to_graph, extracted_data)
                 print(f"  -> Successfully injected: {extracted_data.paper_title}")
 
-                print("  -> Pausing for 15 seconds to respect API rate limits...")
+                print("  -> Pausing for 70 seconds to respect API rate limits...")
                 time.sleep(70)
 
             except Exception as e:

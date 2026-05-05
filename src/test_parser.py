@@ -19,7 +19,8 @@ class PaperExtraction(BaseModel):
     metrics: List[str] = Field(description="Evaluation metrics reported e.g. Hits@1, Hits@10, MRR, F1")
     baselines: List[str] = Field(description="Names of baseline models compared against e.g. ToG, RoG, GNN-RAG")
     kg_structure_assumption: str = Field(description="The KG structural form this paper assumes. Must be exactly one of: 'triple-only', 'hyper-relational', 'temporal-quadruple', 'mixed'")
-
+    aliases: List[str] = Field(description="Short-form names, acronyms, or codebase names this paper is commonly referred to by e.g. 'ToG' for Think-on-Graph, 'RoG' for Reasoning on Graphs, 'StarE' for Message Passing for Hyper-Relational Knowledge Graphs")
+    
 # 3. Load the Markdown File
 current_dir = os.getcwd()
 file_path = os.path.join(current_dir, "data", "papers", "triples", "RoG.mmd")
