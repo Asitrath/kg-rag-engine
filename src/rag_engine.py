@@ -18,34 +18,56 @@ def retrieve_context_from_graph(tx, keyword):
     query = """
     MATCH (p:Paper)
     WHERE toLower(p.title) CONTAINS toLower($keyword)
+<<<<<<< Updated upstream
         OR ANY(alias IN p.aliases WHERE toLower(alias) CONTAINS toLower($keyword))
         
     // NEW: Pull the methodologies!
     OPTIONAL MATCH (p)-[:USES_METHOD]->(m:Methodology) 
     
+=======
+       OR ANY(alias IN p.aliases WHERE toLower(alias) CONTAINS toLower($keyword))
+
+    OPTIONAL MATCH (p)-[:USES_METHOD]->(m:Methodology)
+    OPTIONAL MATCH (p)-[:EVALUATES_ON]->(ds:Dataset)
+    OPTIONAL MATCH (p)-[:MEASURES]->(mt:Metric)
+    OPTIONAL MATCH (p)-[:COMPARES_AGAINST]->(b:Baseline)
+    OPTIONAL MATCH (p)-[:ASSUMES_STRUCTURE]->(s:KGStructure)
+>>>>>>> Stashed changes
     OPTIONAL MATCH (p)<-[:IMPLEMENTS]-(r:Repository)
     OPTIONAL MATCH (r)<-[:BELONGS_TO]-(f:File)
     OPTIONAL MATCH (f)-[:DEFINES]->(fn:Function)
-    
-    RETURN p.title AS Paper, p.key_findings AS Findings, 
-           collect(DISTINCT m.name) AS Methodologies, // Collect all methods into a list
-           r.name AS Repository, f.name AS File, 
-           fn.name AS Function, fn.description AS Description
+    OPTIONAL MATCH (f)-[:DEFINES_CLASS]->(c:Class)
+    OPTIONAL MATCH (f)-[:USES_GRAPH_LIB]->(gl:GraphLibrary)
+
+    RETURN p.title AS Paper, p.key_findings AS Findings,
+           collect(DISTINCT m.name) AS Methodologies,
+           collect(DISTINCT ds.name) AS Datasets,
+           collect(DISTINCT mt.name) AS Metrics,
+           collect(DISTINCT b.name) AS Baselines,
+           s.name AS KGStructure,
+           r.name AS Repository, f.name AS File,
+           fn.name AS Function, fn.description AS Description,
+           collect(DISTINCT c.name) AS Classes,
+           collect(DISTINCT gl.name) AS GraphLibraries
     """
     result = tx.run(query, keyword=keyword)
     return [record for record in result]
 
 def format_context(records):
-    """Translates Neo4j JSON records into a readable text block for the LLM"""
+    
     if not records or records[0]["Paper"] is None:
         return "No relevant information found in the Knowledge Graph."
-    
-    # 1. Add Academic Context
-    context = f"ACADEMIC PAPER:\nTitle: {records[0]['Paper']}\n"
-    context += f"Key Findings: {records[0]['Findings']}\n\n"
-    context += f"Methodologies Used: {', '.join(records[0]['Methodologies'])}\n\n" # NEW LINE
-    
-    # 2. Add Code Architecture Context
+
+    r0 = records[0]
+
+    context = f"ACADEMIC PAPER:\nTitle: {r0['Paper']}\n"
+    context += f"Key Findings: {r0['Findings']}\n"
+    context += f"KG Structure Assumption: {r0['KGStructure']}\n"
+    context += f"Methodologies: {', '.join(r0['Methodologies'])}\n"
+    context += f"Datasets Evaluated On: {', '.join(r0['Datasets'])}\n"
+    context += f"Metrics: {', '.join(r0['Metrics'])}\n"
+    context += f"Baselines Compared Against: {', '.join(r0['Baselines'])}\n\n"
+
     context += "ASSOCIATED CODEBASE ARCHITECTURE:\n"
     
     current_file = ""
@@ -53,11 +75,14 @@ def format_context(records):
         if record["File"] and record["File"] != current_file:
             current_file = record["File"]
             context += f"\n- FILE: {current_file} (Repository: {record['Repository']})\n"
-        
+            if record["Classes"]:
+                context += f"  Classes: {', '.join(record['Classes'])}\n"
+            if record["GraphLibraries"]:
+                context += f"  Graph Libraries: {', '.join(record['GraphLibraries'])}\n"
         if record["Function"]:
-            context += f"  * Function: def {record['Function']}()\n"
-            context += f"    Description: {record['Description']}\n"
-            
+            context += f"  * def {record['Function']}()\n"
+            context += f"    {record['Description']}\n"
+
     return context
 
 # ==========================================
