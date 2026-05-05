@@ -68,6 +68,53 @@ def inject_paper_to_graph(tx, paper_obj):
             """,
             name=method, title=data["paper_title"]
         )
+        # D. Create Dataset Nodes and link to Paper
+    for dataset in data["datasets"]:
+        tx.run(
+            """
+            MERGE (ds:Dataset {name: $name})
+            WITH ds
+            MATCH (p:Paper {title: $title})
+            MERGE (p)-[:EVALUATES_ON]->(ds)
+            """,
+            name=dataset, title=data["paper_title"]
+        )
+
+    # E. Create Metric Nodes and link to Paper
+    for metric in data["metrics"]:
+        tx.run(
+            """
+            MERGE (mt:Metric {name: $name})
+            WITH mt
+            MATCH (p:Paper {title: $title})
+            MERGE (p)-[:MEASURES]->(mt)
+            """,
+            name=metric, title=data["paper_title"]
+        )
+
+    # F. Create Baseline Nodes and link to Paper
+    for baseline in data["baselines"]:
+        tx.run(
+            """
+            MERGE (b:Baseline {name: $name})
+            WITH b
+            MATCH (p:Paper {title: $title})
+            MERGE (p)-[:COMPARES_AGAINST]->(b)
+            """,
+            name=baseline, title=data["paper_title"]
+        )
+
+    # G. Create KGStructure Node and link to Paper
+    tx.run(
+        """
+        MERGE (s:KGStructure {name: $assumption})
+        WITH s
+        MATCH (p:Paper {title: $title})
+        MERGE (p)-[:ASSUMES_STRUCTURE]->(s)
+        """,
+        assumption=data["kg_structure_assumption"],
+        title=data["paper_title"]
+    )
 
 # ==========================================
 # 4. MAIN PIPELINE EXECUTION
@@ -97,6 +144,20 @@ def process_all_papers():
         for file_path in mmd_files:
             filename = os.path.basename(file_path)
             print(f"Processing: {filename}...")
+
+            # Skip if already fully injected with enriched schema
+            already_done = session.run(
+                """
+                MATCH (p:Paper)-[:ASSUMES_STRUCTURE]->()
+                WHERE toLower(p.title) CONTAINS toLower($keyword)
+                RETURN p LIMIT 1
+                """,
+                keyword=os.path.splitext(filename)[0]  # e.g. "GNN-RAG" from "GNN-RAG.mmd"
+            ).single()
+
+            if already_done:
+                print(f"  -> Skipping {filename} (already injected with enriched schema)")
+                continue
             
             try:
                 # Read the markdown file
@@ -123,7 +184,7 @@ def process_all_papers():
                 print(f"  -> Successfully injected: {extracted_data.paper_title}")
 
                 print("  -> Pausing for 15 seconds to respect API rate limits...")
-                time.sleep(15)
+                time.sleep(70)
 
             except Exception as e:
                 print(f"  -> ERROR processing {filename}: {e}")
