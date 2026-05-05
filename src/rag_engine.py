@@ -18,7 +18,8 @@ def retrieve_context_from_graph(tx, keyword):
     query = """
     MATCH (p:Paper)
     WHERE toLower(p.title) CONTAINS toLower($keyword)
-    
+        OR ANY(alias IN p.aliases WHERE toLower(alias) CONTAINS toLower($keyword))
+        
     // NEW: Pull the methodologies!
     OPTIONAL MATCH (p)-[:USES_METHOD]->(m:Methodology) 
     
